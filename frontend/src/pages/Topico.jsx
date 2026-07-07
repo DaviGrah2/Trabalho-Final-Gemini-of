@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useStudent } from '../context/StudentContext.jsx';
-import { fetchTopico, generateTopico, submitResposta } from '../api.js';
+import { fetchTopico, fetchAssessment, generateTopico, submitResposta } from '../api.js';
 import Card from '../components/Card.jsx';
 import FeedbackBox from '../components/FeedbackBox.jsx';
 import Loading from '../components/Loading.jsx';
@@ -11,7 +11,10 @@ export default function Topico() {
   const { id } = useParams();
   const { student } = useStudent();
   const [topicData, setTopicData] = useState(null);
-  const [answers, setAnswers] = useState([]);
+  const [assessmentIds, setAssessmentIds] = useState([]);
+  const [currentAssessmentIndex, setCurrentAssessmentIndex] = useState(0);
+  const [currentAssessment, setCurrentAssessment] = useState(null);
+  const [answerMap, setAnswerMap] = useState({});
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +28,12 @@ export default function Topico() {
       try {
         const data = await fetchTopico(student.id, id);
         setTopicData(data);
-        setAnswers((data.assessments || []).map(() => ''));
+        const ids = (data.assessments || []).map((assessment) => assessment.id);
+        setAssessmentIds(ids);
+        setCurrentAssessmentIndex(0);
+        if (ids.length > 0) {
+          await loadAssessmentById(ids[0]);
+        }
       } catch (err) {
         setError('Não foi possível carregar o tópico.');
       } finally {
@@ -36,6 +44,24 @@ export default function Topico() {
     loadTopic();
   }, [student, id]);
 
+  async function loadAssessmentById(assessmentId) {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await fetchAssessment(student.id, id, assessmentId);
+      setCurrentAssessment(data.assessment);
+      setAssessmentIds(data.assessmentIds || []);
+      setCurrentAssessmentIndex(data.currentIndex >= 0 ? data.currentIndex : 0);
+      if (!topicData) {
+        setTopicData({ topic: data.topic, assessments: [] });
+      }
+    } catch (err) {
+      setError('Não foi possível carregar a pergunta.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleGenerate() {
     setLoading(true);
     setError('');
@@ -43,7 +69,12 @@ export default function Topico() {
     try {
       const data = await generateTopico(student.id, id);
       setTopicData(data);
-      setAnswers((data.assessments || []).map(() => ''));
+      const ids = (data.assessments || []).map((assessment) => assessment.id);
+      setAssessmentIds(ids);
+      setCurrentAssessmentIndex(0);
+      if (ids.length > 0) {
+        await loadAssessmentById(ids[0]);
+      }
     } catch (err) {
       setError('Erro ao gerar questionário.');
     } finally {
@@ -53,24 +84,37 @@ export default function Topico() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!topicData?.assessments?.length) return;
+    if (!currentAssessment) return;
     setLoading(true);
     setError('');
 
     try {
-      const responses = topicData.assessments.map((assessment, index) => ({
-        assessmentId: assessment.id,
-        studentAnswer: answers[index] || ''
-      }));
-
-      const response = await submitResposta(student.id, id, { responses });
+      const response = await submitResposta(student.id, id, {
+        assessmentId: currentAssessment.id,
+        studentAnswer: answerMap[currentAssessment.id] || ''
+      });
       setFeedback(response);
     } catch (err) {
-      setError('Erro ao enviar respostas.');
+      setError('Erro ao enviar resposta.');
     } finally {
       setLoading(false);
     }
   }
+
+  function handleAnswerChange(value) {
+    setAnswerMap((prev) => ({
+      ...prev,
+      [currentAssessment.id]: value
+    }));
+  }
+
+  async function goToAssessmentIndex(index) {
+    if (index < 0 || index >= assessmentIds.length) return;
+    await loadAssessmentById(assessmentIds[index]);
+  }
+
+  const totalQuestions = topicData?.assessments?.length ?? assessmentIds.length;
+  const currentNumber = currentAssessmentIndex + 1;
 
   return (
     <Card title="Tópico" description="Revise o conteúdo e responda a avaliação abaixo.">
@@ -82,32 +126,51 @@ export default function Topico() {
           <p>{topicData.topic.content}</p>
           <div className="avaliacao">
             <h3>Questionário de verificação</h3>
-            <p>{topicData.assessments?.length ?? 0} perguntas encontradas</p>
-            {topicData.assessments?.length ? (
-              <form onSubmit={handleSubmit} className="formulario">
-                {topicData.assessments.map((assessment, index) => (
-                  <label key={assessment.id}>
-                    <span className="pergunta-texto">{index + 1}. {assessment.question}</span>
+            <p>{totalQuestions} perguntas encontradas</p>
+            {totalQuestions > 0 && currentAssessment ? (
+              <>
+                <div className="pagina-info">
+                  Pergunta {currentNumber} de {totalQuestions}
+                </div>
+                <form onSubmit={handleSubmit} className="formulario">
+                  <label key={currentAssessment.id}>
+                    <span className="pergunta-texto">
+                      {currentNumber}. {currentAssessment.question}
+                    </span>
                     <textarea
-                      name={`resposta-${assessment.id}`}
-                      value={answers[index] || ''}
-                      onChange={(e) => {
-                        const updated = [...answers];
-                        updated[index] = e.target.value;
-                        setAnswers(updated);
-                      }}
+                      name={`resposta-${currentAssessment.id}`}
+                      value={answerMap[currentAssessment.id] || ''}
+                      onChange={(e) => handleAnswerChange(e.target.value)}
                     />
                   </label>
-                ))}
-                <div className="acoes-formulario">
-                  <Botao type="submit" disabled={loading || answers.some((answer) => !answer)}>
-                    {loading ? 'Enviando...' : 'Enviar respostas'}
-                  </Botao>
-                  <Botao type="button" onClick={handleGenerate} disabled={loading}>
-                    {loading ? 'Gerando...' : 'Gerar perguntas'}
-                  </Botao>
-                </div>
-              </form>
+                  <div className="paginacao">
+                    <button
+                      type="button"
+                      className="botao secundario"
+                      onClick={() => goToAssessmentIndex(currentAssessmentIndex - 1)}
+                      disabled={currentAssessmentIndex === 0 || loading}
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      type="button"
+                      className="botao secundario"
+                      onClick={() => goToAssessmentIndex(currentAssessmentIndex + 1)}
+                      disabled={currentAssessmentIndex === totalQuestions - 1 || loading}
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                  <div className="acoes-formulario">
+                    <Botao type="submit" disabled={loading || !answerMap[currentAssessment.id]}>
+                      {loading ? 'Enviando...' : 'Enviar resposta'}
+                    </Botao>
+                    <Botao type="button" onClick={handleGenerate} disabled={loading}>
+                      {loading ? 'Gerando...' : 'Gerar perguntas'}
+                    </Botao>
+                  </div>
+                </form>
+              </>
             ) : (
               <>
                 <p>Nenhum questionário disponível para este tópico.</p>

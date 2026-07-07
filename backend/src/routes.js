@@ -54,7 +54,7 @@ async function loadOrGenerateAssessments(studentId, topic, force = false) {
     await query('DELETE FROM assessments WHERE student_id = $1 AND topic_id = $2', [studentId, topic.id]);
   }
 
-  const assessmentsRes = await query('SELECT * FROM assessments WHERE student_id = $1 AND topic_id = $2', [studentId, topic.id]);
+  const assessmentsRes = await query('SELECT * FROM assessments WHERE student_id = $1 AND topic_id = $2 ORDER BY id', [studentId, topic.id]);
   let assessments = assessmentsRes.rows;
 
   if (assessments.length === 0) {
@@ -98,6 +98,32 @@ router.post('/topico/:studentId/:topicId/gerar', async (req, res) => {
     res.json({ topic, assessments });
   } catch (error) {
     res.status(500).json({ error: 'Falha ao gerar questionário.' });
+  }
+});
+
+router.get('/topico/:studentId/:topicId/assessment/:assessmentId', async (req, res) => {
+  const { studentId, topicId, assessmentId } = req.params;
+  try {
+    const topicRes = await query('SELECT * FROM topics WHERE student_id = $1 AND id = $2', [studentId, topicId]);
+    const topic = topicRes.rows[0];
+    if (!topic) return res.status(404).json({ error: 'Tópico não encontrado.' });
+
+    await loadOrGenerateAssessments(studentId, topic);
+
+    const assessmentRes = await query(
+      'SELECT * FROM assessments WHERE id = $1 AND student_id = $2 AND topic_id = $3',
+      [assessmentId, studentId, topicId]
+    );
+    const assessment = assessmentRes.rows[0];
+    if (!assessment) return res.status(404).json({ error: 'Pergunta não encontrada.' });
+
+    const idsRes = await query('SELECT id FROM assessments WHERE student_id = $1 AND topic_id = $2 ORDER BY id', [studentId, topicId]);
+    const assessmentIds = idsRes.rows.map((row) => row.id);
+    const currentIndex = assessmentIds.findIndex((id) => id === Number(assessmentId));
+
+    res.json({ topic, assessment, assessmentIds, currentIndex });
+  } catch (error) {
+    res.status(500).json({ error: 'Falha ao carregar pergunta.' });
   }
 });
 

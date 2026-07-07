@@ -22,6 +22,11 @@ export async function fetchTopico(studentId, topicId) {
   return response.data;
 }
 
+export async function fetchAssessment(studentId, topicId, assessmentId) {
+  const response = await api.get(`/topico/${studentId}/${topicId}/assessment/${assessmentId}`);
+  return response.data;
+}
+
 export async function generateTopico(studentId, topicId) {
   const response = await api.post(`/topico/${studentId}/${topicId}/gerar`);
   return response.data;
