@@ -1,0 +1,36 @@
+CREATE TABLE IF NOT EXISTS students (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS topics (
+  id SERIAL PRIMARY KEY,
+  student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  order_index INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  completed BOOLEAN DEFAULT FALSE,
+  score INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS assessments (
+  id SERIAL PRIMARY KEY,
+  student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+  topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  answer_key TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS responses (
+  id SERIAL PRIMARY KEY,
+  assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+  student_answer TEXT NOT NULL,
+  correct BOOLEAN NOT NULL,
+  feedback TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
