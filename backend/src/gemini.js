@@ -8,6 +8,102 @@ const GEMINI_API_URL = process.env.GEMINI_API_URL;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gpt-4.1-mini';
 
 const staticTopicQuestions = {
+  1: [
+    'O que é lógica de programação?',
+    'O que é um algoritmo?',
+    'Qual a diferença entre algoritmo e programa?',
+    'Como transformar um problema em passos lógicos?',
+    'O que significa decompor um problema?',
+    'Como escrever um pseudocódigo?',
+    'Por que a lógica é importante na programação?',
+    'Como testar um algoritmo?',
+    'Quais são as etapas de resolução de um problema?',
+    'Cite um exemplo de algoritmo do cotidiano.'
+  ],
+  2: [
+    'O que são variáveis em programação?',
+    'Por que usamos variáveis?',
+    'Qual a diferença entre declarar e atribuir valor?',
+    'O que são tipos de dados?',
+    'Quais tipos básicos de dados você conhece?',
+    'Como nomear corretamente uma variável?',
+    'O que são constantes?',
+    'Qual a diferença entre var, let e const?',
+    'Como armazenar números e textos em variáveis?',
+    'Por que é importante dar significado aos nomes das variáveis?'
+  ],
+  3: [
+    'O que é controle de fluxo?',
+    'O que é uma estrutura condicional?',
+    'Como funciona o if?',
+    'Como funciona o else?',
+    'Quando usar o else if?',
+    'O que é uma estrutura switch?',
+    'Qual a diferença entre if e switch?',
+    'Como tomar decisões com base em condições?',
+    'Como testar múltiplas condições?',
+    'Cite um exemplo prático de decisão em um programa.'
+  ],
+  4: [
+    'O que são estruturas de repetição?',
+    'Quando usar um laço de repetição?',
+    'Como funciona o for?',
+    'Como funciona o while?',
+    'Qual a diferença entre for e while?',
+    'O que é um loop infinito?',
+    'Como evitar loops infinitos?',
+    'Quando usar break e continue?',
+    'Como percorrer uma lista com repetição?',
+    'Cite um exemplo de repetição em um programa.'
+  ],
+  5: [
+    'O que é uma função?',
+    'Por que usar funções?',
+    'Qual a diferença entre função e procedimento?',
+    'Como declarar uma função?',
+    'O que são parâmetros?',
+    'O que é retorno de função?',
+    'Como reutilizar código com funções?',
+    'O que é modularização?',
+    'Por que dividir um programa em funções?',
+    'Cite um exemplo de função simples.'
+  ],
+  6: [
+    'O que é um array?',
+    'Como criar um array?',
+    'Como acessar um elemento de um array?',
+    'Como percorrer um array?',
+    'O que é índice de um array?',
+    'Como adicionar elementos em um array?',
+    'Como remover elementos de um array?',
+    'Qual a diferença entre array e objeto?',
+    'Como usar arrays para armazenar dados relacionados?',
+    'Cite um exemplo prático de uso de array.'
+  ],
+  7: [
+    'O que é um objeto em programação?',
+    'Como criar um objeto?',
+    'Quais são as propriedades de um objeto?',
+    'Como acessar valores dentro de um objeto?',
+    'O que é um método em um objeto?',
+    'Como manipular dados com objetos?',
+    'Qual a diferença entre objeto e array?',
+    'Como organizar informações em objetos?',
+    'Como usar objetos para representar entidades reais?',
+    'Cite um exemplo de objeto no cotidiano.'
+  ],
+  8: [
+    'O que é uma string?',
+    'Como concatenar strings?',
+    'Como acessar caracteres de uma string?',
+    'Quais operações comuns com strings?',
+    'Como transformar uma string em maiúsculas ou minúsculas?',
+    'O que é interpolação de strings?',
+    'Como comparar strings?',
+    'Por que é importante manipular strings corretamente?',
+    'Como usar strings em mensagens ao usuário?',
+    'Cite um exemplo prático de manipulação de strings.'
+  ],
   9: [
     'O que é entrada de dados em programação?',
     'O que é saída de dados?',
@@ -311,14 +407,17 @@ export async function generateAssessment(topic) {
     return staticQuestions;
   }
 
+  const fallbackQuestions = Array.from({ length: 10 }, (_, index) => ({
+    id: index + 1,
+    question: `Pergunta ${index + 1}: Explique o conceito principal de ${topic.title} e sua aplicação prática.`,
+    answer_key: `Resposta esperada para a pergunta ${index + 1}.`,
+    feedback: `Feedback para a pergunta ${index + 1}: revise os pontos principais do tópico e aplique o conceito corretamente.`
+  }));
+
   const prompt = `Gere um questionário de verificação com 30 perguntas, cada uma com answer_key e feedback, para o tópico: ${topic.title}. Conteúdo: ${topic.content}`;
   const result = await callGemini(prompt);
   const parsed = parseAssessmentResult(result, topic);
-  return parsed.length ? parsed : Array.from({ length: 30 }, (_, index) => ({
-    question: `Pergunta ${index + 1}: Explique o conceito principal de ${topic.title} e sua aplicação prática.`,
-    answer_key: `Resposta esperada para a pergunta ${index + 1}.`, 
-    feedback: `Feedback para a pergunta ${index + 1}: revise os pontos principais do tópico e aplique o conceito corretamente.`
-  }));
+  return parsed.length ? parsed : fallbackQuestions;
 }
 
 export async function generateFeedback(studentAnswer, answerKey) {
