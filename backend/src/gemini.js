@@ -139,7 +139,8 @@ function buildStaticQuestions(orderIndex) {
 }
 
 async function callGemini(prompt) {
-  if (!GEMINI_API_KEY) {
+  if (!GEMINI_API_KEY || !GEMINI_API_URL) {
+    console.warn('Gemini config ausente; usando fallback simulado.');
     return simulateGemini(prompt);
   }
 
@@ -153,15 +154,20 @@ async function callGemini(prompt) {
     max_tokens: 700
   };
 
-  const response = await axios.post(GEMINI_API_URL, body, {
-    headers: {
-      Authorization: `Bearer ${GEMINI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    timeout: 10000
-  });
+  try {
+    const response = await axios.post(GEMINI_API_URL, body, {
+      headers: {
+        Authorization: `Bearer ${GEMINI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
 
-  return response.data?.choices?.[0]?.message?.content || '';
+    return response.data?.choices?.[0]?.message?.content || simulateGemini(prompt);
+  } catch (error) {
+    console.error('Falha na chamada Gemini:', error?.message || error);
+    return simulateGemini(prompt);
+  }
 }
 
 function simulateGemini(prompt) {

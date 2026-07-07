@@ -35,6 +35,7 @@ router.post('/diagnostico', async (req, res) => {
 
     res.json({ diagnosis: diagnosisText, studyPath });
   } catch (error) {
+    console.error('Erro /diagnostico:', error);
     res.status(500).json({ error: 'Falha ao gerar diagnóstico e trilha.' });
   }
 });
