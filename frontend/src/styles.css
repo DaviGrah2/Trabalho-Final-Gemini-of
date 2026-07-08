@@ -199,6 +199,27 @@ body {
   padding: 1rem;
 }
 
+.profile-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: linear-gradient(90deg,#ffffff,#f7fbff);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 6px 18px rgba(13,38,77,0.06);
+}
+.profile-card img {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid #e6eefc;
+}
+.profile-controls label{ display:block; font-weight:600; margin-bottom:0.5rem }
+.profile-actions { display:flex; gap:0.75rem; align-items:center }
+.small-muted { font-size:0.85rem; color:#6b7280 }
+
 .resultado {
   margin-top: 1.25rem;
   background: #f1f5f9;

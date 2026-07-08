@@ -35,6 +35,29 @@ export default function Painel() {
     loadPainel();
   }, [student]);
 
+  // save painel locally for restore
+  useEffect(() => {
+    if (!student || !painel) return;
+    try {
+      localStorage.setItem(`painel_${student.id}`, JSON.stringify({ painel, savedAt: new Date().toISOString() }));
+    } catch (e) {
+      // ignore
+    }
+  }, [painel, student]);
+
+  function restoreLocalProgress() {
+    if (!student) return;
+    try {
+      const raw = localStorage.getItem(`painel_${student.id}`);
+      if (!raw) return alert('Nenhum progresso local encontrado.');
+      const parsed = JSON.parse(raw);
+      setPainel(parsed.painel);
+      alert(`Progresso restaurado (salvo em ${new Date(parsed.savedAt).toLocaleString()}).`);
+    } catch (e) {
+      alert('Falha ao restaurar progresso local.');
+    }
+  }
+
   async function handleAvatarFile(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -72,28 +95,37 @@ export default function Painel() {
         <p className="erro">{error}</p>
       ) : painel ? (
         <>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+          <div className="profile-card">
             <div>
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" style={{ width: 80, height: 80, borderRadius: 999 }} />
+                <img src={avatarPreview} alt="Avatar" />
               ) : (
-                <div style={{ width: 80, height: 80, borderRadius: 999, background: '#e2e8f0' }} />
+                <div style={{ width: 96, height: 96, borderRadius: 999, background: '#e2e8f0' }} />
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <label>
-                Nome
-                <input type="text" value={editingName} onChange={(e) => setEditingName(e.target.value)} />
-              </label>
-              <label>
-                Foto
-                <input type="file" accept="image/*" onChange={handleAvatarFile} />
-              </label>
-            </div>
-            <div>
-              <button className="botao" type="button" onClick={handleSaveProfile} disabled={profileSaving}>
-                {profileSaving ? 'Salvando...' : 'Salvar perfil'}
-              </button>
+              <div className="profile-controls">
+                <label>
+                  Nome
+                  <input type="text" value={editingName} onChange={(e) => setEditingName(e.target.value)} />
+                </label>
+                <label>
+                  Foto
+                  <input type="file" accept="image/*" onChange={handleAvatarFile} />
+                </label>
+                <div className="profile-actions">
+                  <button className="botao" type="button" onClick={handleSaveProfile} disabled={profileSaving}>
+                    {profileSaving ? 'Salvando...' : 'Salvar perfil'}
+                  </button>
+                  <button className="botao secundario" type="button" onClick={() => {
+                    // clear local saved painel
+                    if (!student) return; localStorage.removeItem(`painel_${student.id}`); alert('Progresso local removido.');
+                  }}>
+                    Limpar progresso local
+                  </button>
+                </div>
+                <div className="small-muted">Suas informações são salvas localmente e no servidor.</div>
+              </div>
             </div>
           </div>
 
