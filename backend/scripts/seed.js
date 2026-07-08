@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API = process.env.API_URL || 'http://localhost:3000/api';
+const API = process.env.API_URL || 'http://localhost:3001/api';
 
 async function main() {
   try {
