@@ -110,7 +110,32 @@ router.get('/topico/:studentId/:topicId', async (req, res) => {
     if (!topic) return res.status(404).json({ error: 'Tópico não encontrado.' });
 
     const assessments = await loadOrGenerateAssessments(studentId, topic);
-    res.json({ topic, assessments });
+    const assessmentIds = assessments.map((assessment) => assessment.id);
+
+    const responsesRes = await query(
+      `SELECT DISTINCT ON (assessment_id) assessment_id, student_answer, correct, feedback, created_at
+       FROM responses
+       WHERE assessment_id = ANY($1::int[])
+       ORDER BY assessment_id, created_at DESC`,
+      [assessmentIds]
+    );
+
+    const latestResponses = responsesRes.rows.reduce((acc, row) => {
+      acc[row.assessment_id] = row;
+      return acc;
+    }, {});
+
+    const assessmentsWithSaved = assessments.map((assessment) => {
+      const saved = latestResponses[assessment.id];
+      return {
+        ...assessment,
+        saved_answer: saved?.student_answer || '',
+        saved_correct: saved?.correct ?? null,
+        saved_feedback: saved?.feedback || ''
+      };
+    });
+
+    res.json({ topic, assessments: assessmentsWithSaved });
   } catch (error) {
     res.status(500).json({ error: 'Falha ao buscar tópico.' });
   }

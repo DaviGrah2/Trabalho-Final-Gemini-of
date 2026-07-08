@@ -27,8 +27,23 @@ export default function Topico() {
       setError('');
       try {
         const data = await fetchTopico(student.id, id);
+        const savedAnswers = {};
+        const savedResults = {};
+
+        if (data.assessments) {
+          data.assessments.forEach((assessment) => {
+            if (assessment.saved_answer) {
+              savedAnswers[assessment.id] = assessment.saved_answer;
+            }
+            if (assessment.saved_correct !== null) {
+              savedResults[assessment.id] = assessment.saved_correct;
+            }
+          });
+        }
+
         setTopicData(data);
-        setAnswerMap({});
+        setAnswerMap(savedAnswers);
+        setAnswerResultMap(savedResults);
       } catch (err) {
         setError('Não foi possível carregar o tópico.');
       } finally {
@@ -152,6 +167,9 @@ export default function Topico() {
                             value={answerMap[assessment.id] || ''}
                             onChange={(e) => handleAnswerChange(assessment.id, e.target.value)}
                           />
+                          {assessment.saved_feedback && !feedback && (
+                            <p className="saved-feedback">Último feedback: {assessment.saved_feedback}</p>
+                          )}
                         </label>
                       ))}
 
@@ -217,6 +235,11 @@ export default function Topico() {
               ) : (
                 <FeedbackBox feedback={feedback.feedback} correct={feedback.correct} />
               )}
+            </div>
+          )}
+          {topicData.topic.order_index === 10 && (
+            <div className="easter-egg">
+              O tolo reclama do bolso furado, o sábio usa o furo para coçar o saco.
             </div>
           )}
         </>

@@ -228,6 +228,23 @@ body {
 
 @keyframes highlightGreen { 0% { box-shadow: 0 0 0 rgba(16,185,129,0.0); } 30% { box-shadow: 0 6px 18px rgba(16,185,129,0.18); } 100% { box-shadow: none; } }
 @keyframes highlightRed { 0% { box-shadow: 0 0 0 rgba(220,38,38,0.0); } 30% { box-shadow: 0 6px 18px rgba(220,38,38,0.18); } 100% { box-shadow: none; } }
+.saved-feedback {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+}
+.easter-egg {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 14px;
+  background: #fff4f4;
+  border: 1px solid #f1c0c0;
+  color: #991b1b;
+  font-weight: 700;
+}
 .profile-controls label{ display:block; font-weight:600; margin-bottom:0.5rem }
 .profile-actions { display:flex; gap:0.75rem; align-items:center }
 .small-muted { font-size:0.85rem; color:#6b7280 }
