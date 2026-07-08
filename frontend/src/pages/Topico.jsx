@@ -15,7 +15,7 @@ export default function Topico() {
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [pageSize, setPageSize] = useState(0); // 0 = show all
+  const [pageSize, setPageSize] = useState(10); // 0 = show all, default 10 per page
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -103,6 +103,7 @@ export default function Topico() {
                       setPageSize(10);
                       setCurrentPage(1);
                     }}
+                    disabled={pageSize === 10}
                   >
                     Mostrar 10 por página
                   </button>
@@ -113,6 +114,7 @@ export default function Topico() {
                       setPageSize(0);
                       setCurrentPage(1);
                     }}
+                    disabled={pageSize === 0}
                   >
                     Mostrar todos
                   </button>
