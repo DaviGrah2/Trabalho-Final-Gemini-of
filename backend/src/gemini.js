@@ -281,7 +281,7 @@ function simulateGemini(prompt) {
   }
 
   if (prompt.includes('questionário de verificação')) {
-    const questions = Array.from({ length: 30 }, (_, index) => ({
+    const questions = Array.from({ length: 10 }, (_, index) => ({
       id: index + 1,
       question: `Pergunta ${index + 1}: Explique o conceito principal de ${prompt.includes('tópico') ? prompt.split('tópico: ')[1]?.split('.')[0] : 'este tópico'} e sua aplicação prática.`,
       answer_key: `Resposta esperada para a pergunta ${index + 1}.`, 
@@ -291,7 +291,30 @@ function simulateGemini(prompt) {
   }
 
   if (prompt.includes('feedback')) {
-    return `Você respondeu ${prompt.includes('14') ? 'corretamente' : 'incorreto'}. ${prompt.includes('14') ? 'Ótimo trabalho mantendo a precedência de operadores.' : 'Reveja a ordem de operações e a precedência entre multiplicação e adição.'}`;
+    // Try to extract student answer and answer key from the prompt for a simple heuristic
+    const studentMatch = prompt.match(/Resposta:\s*(.*)\.\s*Gabarito:/i);
+    const keyMatch = prompt.match(/Gabarito:\s*(.*)$/i);
+    const studentText = studentMatch ? studentMatch[1].trim() : '';
+    const keyText = keyMatch ? keyMatch[1].trim() : '';
+
+    let correct = false;
+    let feedback = '';
+    if (!studentText) {
+      correct = false;
+      feedback = 'Resposta vazia. Forneça uma resposta mais completa.';
+    } else if (studentText.length >= 20) {
+      correct = true;
+      feedback = 'Resposta detalhada — parece correta em termos gerais. Revise pontos específicos do gabarito.';
+    } else {
+      // try keyword overlap
+      const sWords = studentText.toLowerCase().split(/\W+/).filter(Boolean);
+      const kWords = keyText.toLowerCase().split(/\W+/).filter(Boolean);
+      const overlap = sWords.filter((w) => kWords.includes(w)).length;
+      correct = overlap >= Math.max(1, Math.floor(kWords.length / 3));
+      feedback = correct ? 'Boa resposta — contém termos importantes do gabarito.' : 'A resposta está incompleta ou não aborda os pontos-chave. Revise o gabarito e tente novamente.';
+    }
+
+    return JSON.stringify({ correct, feedback });
   }
 
   return 'Desculpe, não consegui gerar o conteúdo pedido. Tente novamente.';
@@ -359,13 +382,13 @@ function parseStudyPathResult(result) {
 }
 
 function fillQuestions(questions, topic) {
-  const base = Array.from({ length: 30 }, (_, index) => ({
+  const base = Array.from({ length: 10 }, (_, index) => ({
     id: index + 1,
     question: `Pergunta ${index + 1}: Explique o conceito principal de ${topic.title} e sua aplicação prática.`,
     answer_key: `Resposta esperada para a pergunta ${index + 1}.`, 
     feedback: `Feedback para a pergunta ${index + 1}: revise os pontos principais do tópico e aplique o conceito corretamente.`
   }));
-  return questions.concat(base).slice(0, 30).map((item, index) => ({
+  return questions.concat(base).slice(0, 10).map((item, index) => ({
     ...item,
     id: item.id ?? index + 1
   }));
@@ -381,7 +404,7 @@ function parseAssessmentResult(result, topic) {
   }
 
   const lines = result.split(/\r?\n/).filter(Boolean);
-  const questions = lines.slice(0, 30).map((line, index) => ({
+  const questions = lines.slice(0, 10).map((line, index) => ({
     question: line.replace(/^\d+\.\s*/, '').trim() || `Pergunta ${index + 1}: Explique ${topic.title}.`, 
     answer_key: `Resposta esperada para a pergunta ${index + 1}.`, 
     feedback: `Feedback para a pergunta ${index + 1}: reforçar os principais pontos sobre ${topic.title}.`
@@ -404,7 +427,7 @@ export async function generateStudyPath(diagnosisText) {
 export async function generateAssessment(topic) {
   const staticQuestions = buildStaticQuestions(topic.order_index);
   if (staticQuestions) {
-    // ensure we return a full set of 30 questions by filling with generated base
+    // ensure we return a full set of 10 questions by filling with generated base
     return fillQuestions(staticQuestions, topic);
   }
 
@@ -415,13 +438,26 @@ export async function generateAssessment(topic) {
     feedback: `Feedback para a pergunta ${index + 1}: revise os pontos principais do tópico e aplique o conceito corretamente.`
   }));
 
-  const prompt = `Gere um questionário de verificação com 30 perguntas, cada uma com answer_key e feedback, para o tópico: ${topic.title}. Conteúdo: ${topic.content}`;
+  const prompt = `Gere um questionário de verificação com 10 perguntas, cada uma com answer_key e feedback, para o tópico: ${topic.title}. Conteúdo: ${topic.content}`;
   const result = await callGemini(prompt);
   const parsed = parseAssessmentResult(result, topic);
   return parsed.length ? parsed : fallbackQuestions;
 }
 
 export async function generateFeedback(studentAnswer, answerKey) {
-  const prompt = `Avalie a resposta do estudante e gere um feedback. Resposta: ${studentAnswer}. Gabarito: ${answerKey}`;
-  return callGemini(prompt);
+  const prompt = `Avalie a resposta do estudante e gere um JSON com os campos {"correct": true|false, "feedback": "texto"}. Resposta: ${studentAnswer}. Gabarito: ${answerKey}`;
+  const result = await callGemini(prompt);
+  try {
+    const parsed = JSON.parse(result);
+    if (typeof parsed.correct !== 'undefined' && typeof parsed.feedback === 'string') {
+      return parsed;
+    }
+  } catch (err) {
+    // not JSON — fall through
+  }
+
+  // fallback: infer correctness from text and return structured result
+  const text = String(result || '');
+  const correct = /corret|certo|acertou/i.test(text);
+  return { correct, feedback: text };
 }

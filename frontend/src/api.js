@@ -41,3 +41,13 @@ export async function fetchPainel(studentId) {
   const response = await api.get(`/painel/${studentId}`);
   return response.data;
 }
+
+export async function getStudent(studentId) {
+  const response = await api.get(`/students/${studentId}`);
+  return response.data;
+}
+
+export async function updateStudent(studentId, payload) {
+  const response = await api.put(`/students/${studentId}`, payload);
+  return response.data;
+}

@@ -16,6 +16,31 @@ router.post('/students', async (req, res) => {
   }
 });
 
+router.get('/students/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query('SELECT id, name, email, avatar_url, created_at FROM students WHERE id = $1', [id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Estudante não encontrado.' });
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Falha ao buscar estudante.' });
+  }
+});
+
+router.put('/students/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, avatar_url } = req.body;
+  if (!name && !avatar_url) return res.status(400).json({ error: 'name ou avatar_url são necessários.' });
+  try {
+    const result = await query('UPDATE students SET name = COALESCE($1, name), avatar_url = COALESCE($2, avatar_url) WHERE id = $3 RETURNING id, name, email, avatar_url, created_at', [name, avatar_url, id]);
+    if (!result.rows[0]) return res.status(404).json({ error: 'Estudante não encontrado.' });
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Erro updating student:', error);
+    res.status(500).json({ error: 'Falha ao atualizar estudante.' });
+  }
+});
+
 router.post('/diagnostico', async (req, res) => {
   const { studentId, answers } = req.body;
   if (!studentId || !answers) return res.status(400).json({ error: 'studentId e answers são obrigatórios.' });
@@ -145,15 +170,17 @@ router.post('/topico/:studentId/:topicId/resposta', async (req, res) => {
       const assessment = assessmentRes.rows[0];
       if (!assessment) return res.status(404).json({ error: 'Avaliação não encontrada.' });
 
-      const correct = assessment.answer_key.trim().toLowerCase() === item.studentAnswer.trim().toLowerCase();
-      const feedback = await generateFeedback(item.studentAnswer, assessment.answer_key);
+      // Ask Gemini to evaluate the student's answer comparing to the answer key.
+      const evalRes = await generateFeedback(item.studentAnswer, assessment.answer_key);
+      const correct = typeof evalRes.correct === 'boolean' ? evalRes.correct : (assessment.answer_key.trim().toLowerCase() === (item.studentAnswer || '').trim().toLowerCase());
+      const feedbackText = typeof evalRes.feedback === 'string' ? evalRes.feedback : String(evalRes);
 
       await query(
         'INSERT INTO responses(assessment_id, student_answer, correct, feedback) VALUES($1,$2,$3,$4)',
-        [item.assessmentId, item.studentAnswer, correct, feedback]
+        [item.assessmentId, item.studentAnswer, correct, feedbackText]
       );
 
-      results.push({ assessmentId: item.assessmentId, correct, feedback });
+      results.push({ assessmentId: item.assessmentId, correct, feedback: feedbackText });
       if (!correct) allCorrect = false;
     }
 
