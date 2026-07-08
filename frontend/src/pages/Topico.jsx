@@ -239,7 +239,7 @@ export default function Topico() {
           )}
           {topicData.topic.order_index === 10 && (
             <div className="easter-egg">
-              O tolo reclama do bolso furado, o sábio usa o furo para coçar o saco. by Pascal
+              O tolo reclama do bolso furado, o sábio usa o furo para coçar o saco. "by Pascal"
             </div>
           )}
         </>
