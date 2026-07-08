@@ -29,10 +29,13 @@ router.get('/students/:id', async (req, res) => {
 
 router.put('/students/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, avatar_url } = req.body;
-  if (!name && !avatar_url) return res.status(400).json({ error: 'name ou avatar_url são necessários.' });
+  const { name, avatar_url, global_count } = req.body;
+  if (name === undefined && avatar_url === undefined && global_count === undefined) return res.status(400).json({ error: 'name, avatar_url ou global_count são necessários.' });
   try {
-    const result = await query('UPDATE students SET name = COALESCE($1, name), avatar_url = COALESCE($2, avatar_url) WHERE id = $3 RETURNING id, name, email, avatar_url, created_at', [name, avatar_url, id]);
+    const result = await query(
+      'UPDATE students SET name = COALESCE($1, name), avatar_url = COALESCE($2, avatar_url), global_count = COALESCE($3, global_count) WHERE id = $4 RETURNING id, name, email, avatar_url, created_at, global_count',
+      [name, avatar_url, global_count, id]
+    );
     if (!result.rows[0]) return res.status(404).json({ error: 'Estudante não encontrado.' });
     res.json(result.rows[0]);
   } catch (error) {

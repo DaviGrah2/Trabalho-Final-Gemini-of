@@ -13,6 +13,7 @@ export default function Topico() {
   const [topicData, setTopicData] = useState(null);
   const [answerMap, setAnswerMap] = useState({});
   const [feedback, setFeedback] = useState(null);
+  const [answerResultMap, setAnswerResultMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pageSize, setPageSize] = useState(10); // 0 = show all, default 10 per page
@@ -65,6 +66,7 @@ export default function Topico() {
     if (!topicData?.assessments?.length) return;
     setLoading(true);
     setError('');
+    setAnswerResultMap({});
 
     try {
       const responses = topicData.assessments.map((assessment) => ({
@@ -74,6 +76,14 @@ export default function Topico() {
 
       const response = await submitResposta(student.id, id, { responses });
       setFeedback(response);
+      // map per-assessment results to show animations
+      const map = {};
+      if (response && response.results && Array.isArray(response.results)) {
+        for (const r of response.results) map[r.assessmentId] = !!r.correct;
+      } else if (response && response.assessmentId) {
+        map[response.assessmentId] = !!response.correct;
+      }
+      setAnswerResultMap(map);
     } catch (err) {
       setError('Erro ao enviar respostas.');
     } finally {
@@ -137,6 +147,7 @@ export default function Topico() {
                             {start + index + 1}. {assessment.question}
                           </span>
                           <textarea
+                            className={`answer-input ${answerResultMap[assessment.id] === true ? 'correct' : answerResultMap[assessment.id] === false ? 'wrong' : ''}`}
                             name={`resposta-${assessment.id}`}
                             value={answerMap[assessment.id] || ''}
                             onChange={(e) => handleAnswerChange(assessment.id, e.target.value)}

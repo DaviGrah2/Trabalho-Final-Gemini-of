@@ -216,6 +216,18 @@ body {
   object-fit: cover;
   border: 2px solid #e6eefc;
 }
+.avatar-clickable { width:96px; height:96px; border-radius:999px; overflow:hidden; display:inline-block; cursor:pointer; display:flex; align-items:center; justify-content:center }
+.avatar-clickable img{ width:96px; height:96px; display:block }
+.profile-controls input[type="text"]{ padding:0.7rem 0.9rem; border-radius:10px; border:1px solid #cbd5e1; font-size:1rem }
+.profile-controls label{ margin-bottom:0.25rem }
+
+/* Answer input animations */
+.answer-input{ transition: box-shadow .25s ease, background-color .4s ease, border-color .25s ease }
+.answer-input.correct{ animation: highlightGreen 1s ease; border-color: #16a34a; background: rgba(16,185,129,0.06) }
+.answer-input.wrong{ animation: highlightRed 1s ease; border-color: #dc2626; background: rgba(220,38,38,0.04) }
+
+@keyframes highlightGreen { 0% { box-shadow: 0 0 0 rgba(16,185,129,0.0); } 30% { box-shadow: 0 6px 18px rgba(16,185,129,0.18); } 100% { box-shadow: none; } }
+@keyframes highlightRed { 0% { box-shadow: 0 0 0 rgba(220,38,38,0.0); } 30% { box-shadow: 0 6px 18px rgba(220,38,38,0.18); } 100% { box-shadow: none; } }
 .profile-controls label{ display:block; font-weight:600; margin-bottom:0.5rem }
 .profile-actions { display:flex; gap:0.75rem; align-items:center }
 .small-muted { font-size:0.85rem; color:#6b7280 }

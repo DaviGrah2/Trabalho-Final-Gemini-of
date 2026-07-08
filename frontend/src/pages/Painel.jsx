@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStudent } from '../context/StudentContext.jsx';
 import { fetchPainel, updateStudent } from '../api.js';
 import Card from '../components/Card.jsx';
@@ -13,6 +13,7 @@ export default function Painel() {
   const [editingName, setEditingName] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!student) return;
@@ -66,6 +67,26 @@ export default function Painel() {
     reader.readAsDataURL(file);
   }
 
+  function triggerAvatarPicker() {
+    if (fileInputRef.current) fileInputRef.current.click();
+  }
+
+  async function handleSaveGlobalProgress() {
+    if (!student || !painel) return;
+    const completed = painel.topics.filter((t) => t.completed).length;
+    setProfileSaving(true);
+    try {
+      // use existing updateStudent to send global_count
+      const updated = await updateStudent(student.id, { global_count: completed });
+      setStudent(updated);
+      alert('Progresso global salvo.');
+    } catch (e) {
+      alert('Falha ao salvar progresso global.');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
   async function handleSaveProfile() {
     if (!student) return;
     setProfileSaving(true);
@@ -97,12 +118,15 @@ export default function Painel() {
         <>
           <div className="profile-card">
             <div>
-              {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" />
-              ) : (
-                <div style={{ width: 96, height: 96, borderRadius: 999, background: '#e2e8f0' }} />
-              )}
-            </div>
+                <div className="avatar-clickable" onClick={triggerAvatarPicker} role="button" tabIndex={0}>
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" />
+                  ) : (
+                    <div style={{ width: 96, height: 96, borderRadius: 999, background: '#e2e8f0' }} />
+                  )}
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarFile} />
+              </div>
             <div style={{ flex: 1 }}>
               <div className="profile-controls">
                 <label>
@@ -117,11 +141,16 @@ export default function Painel() {
                   <button className="botao" type="button" onClick={handleSaveProfile} disabled={profileSaving}>
                     {profileSaving ? 'Salvando...' : 'Salvar perfil'}
                   </button>
+                  <button className="botao" type="button" onClick={handleSaveGlobalProgress} disabled={profileSaving}>
+                    {profileSaving ? '...' : 'Salvar progresso global'}
+                  </button>
                   <button className="botao secundario" type="button" onClick={() => {
-                    // clear local saved painel
                     if (!student) return; localStorage.removeItem(`painel_${student.id}`); alert('Progresso local removido.');
                   }}>
                     Limpar progresso local
+                  </button>
+                  <button className="botao secundario" type="button" onClick={() => restoreLocalProgress()}>
+                    Restaurar progresso local
                   </button>
                 </div>
                 <div className="small-muted">Suas informações são salvas localmente e no servidor.</div>

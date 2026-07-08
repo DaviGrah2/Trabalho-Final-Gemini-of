@@ -25,4 +25,10 @@ export async function initDb() {
   } catch (err) {
     console.warn('Could not ensure avatar_url column:', err.message || err);
   }
+  // ensure global_count column exists to store server-side progress/count
+  try {
+    await pool.query("ALTER TABLE students ADD COLUMN IF NOT EXISTS global_count INTEGER DEFAULT 0");
+  } catch (err) {
+    console.warn('Could not ensure global_count column:', err.message || err);
+  }
 }

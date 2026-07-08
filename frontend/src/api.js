@@ -51,3 +51,8 @@ export async function updateStudent(studentId, payload) {
   const response = await api.put(`/students/${studentId}`, payload);
   return response.data;
 }
+
+export async function updateStudentGlobalCount(studentId, count) {
+  const response = await api.put(`/students/${studentId}`, { global_count: count });
+  return response.data;
+}
