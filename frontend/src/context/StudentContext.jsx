@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { getStudent } from '../api.js';
 
 const StudentContext = createContext(null);
 
@@ -29,6 +30,44 @@ export function StudentProvider({ children }) {
       // ignore
     }
   }, [student]);
+
+  const hasFetchedStudent = useRef(false);
+
+  useEffect(() => {
+    if (!student || hasFetchedStudent.current) return;
+    hasFetchedStudent.current = true;
+    async function reloadStudent() {
+      try {
+        const updatedStudent = await getStudent(student.id);
+        if (updatedStudent && updatedStudent.id) {
+          setStudent((current) => ({ ...current, ...updatedStudent }));
+        }
+      } catch (e) {
+        // ignore. keep local student if server is unavailable.
+      }
+    }
+    reloadStudent();
+  }, [student]);
+
+  // Ensure we attempt to resync from server on full app mount (covers HMR/refresh cases)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('student');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.id) return;
+      (async () => {
+        try {
+          const updated = await getStudent(parsed.id);
+          if (updated && updated.id) setStudent((cur) => ({ ...(cur || {}), ...updated }));
+        } catch (e) {
+          // ignore
+        }
+      })();
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     try {

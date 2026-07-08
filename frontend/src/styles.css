@@ -245,6 +245,14 @@ body {
   color: #991b1b;
   font-weight: 700;
 }
+.history-item { padding: 0.9rem; border-radius: 10px; margin-bottom: 0.75rem; display:block }
+.history-item .history-status { display:inline-block; width:76px; font-weight:800 }
+.history-item.correct { background: #ecfdf5; border-left: 6px solid #10b981; color: #065f46 }
+.history-item.correct .history-feedback { color: #065f46 }
+.history-item.wrong { background: #fff1f2; border-left: 6px solid #ef4444; color: #7f1d1d }
+.history-item.wrong .history-feedback { color: #7f1d1d }
+.history-answer { margin: 0.35rem 0 0; font-size: 0.95rem; color: #334155 }
+.history-feedback { margin: 0.25rem 0 0; font-size: 0.95rem }
 .profile-controls label{ display:block; font-weight:600; margin-bottom:0.5rem }
 .profile-actions { display:flex; gap:0.75rem; align-items:center }
 .small-muted { font-size:0.85rem; color:#6b7280 }

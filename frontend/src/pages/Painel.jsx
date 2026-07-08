@@ -62,8 +62,37 @@ export default function Painel() {
   async function handleAvatarFile(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    // compress image client-side to avoid large payloads (reduce dimension and quality)
+    const img = new Image();
     const reader = new FileReader();
-    reader.onload = () => setAvatarPreview(reader.result.toString());
+    reader.onload = () => {
+      img.onload = () => {
+        try {
+          const maxDim = 512; // max width/height
+          let { width, height } = img;
+          let scale = 1;
+          if (width > height && width > maxDim) scale = maxDim / width;
+          else if (height > width && height > maxDim) scale = maxDim / height;
+          else if (width === height && width > maxDim) scale = maxDim / width;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.floor(width * scale));
+          canvas.height = Math.max(1, Math.floor(height * scale));
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          // convert to JPEG with quality to reduce size
+          const compressed = canvas.toDataURL('image/jpeg', 0.8);
+          setAvatarPreview(compressed);
+        } catch (err) {
+          // fallback to original data URL
+          setAvatarPreview(reader.result.toString());
+        }
+      };
+      img.onerror = () => {
+        setAvatarPreview(reader.result.toString());
+      };
+      img.src = reader.result.toString();
+    };
     reader.readAsDataURL(file);
   }
 
@@ -94,8 +123,15 @@ export default function Painel() {
       const updated = await updateStudent(student.id, { name: editingName || undefined, avatar_url: avatarPreview || undefined });
       // update context student
       setStudent(updated);
+      try {
+        localStorage.setItem('student', JSON.stringify(updated));
+      } catch (e) {
+        // ignore storage write errors
+      }
+      alert('Perfil salvo com sucesso.');
     } catch (err) {
-      // ignore for now
+      console.error('Falha ao salvar perfil:', err);
+      alert('Falha ao salvar perfil no servidor. Verifique a conexão.');
     } finally {
       setProfileSaving(false);
     }
@@ -165,9 +201,10 @@ export default function Painel() {
             ) : (
               <ul className="lista-painel">
                 {painel.history.map((item) => (
-                  <li key={item.id}>
-                    <strong>{item.correct ? 'Correto' : 'Incorreto'}</strong> — {item.question}
-                    <p>{item.feedback}</p>
+                  <li key={item.id} className={`history-item ${item.correct ? 'correct' : 'wrong'}`}>
+                    <strong className="history-status">{item.correct ? 'Correto' : 'Incorreto'}</strong> — {item.question}
+                    <p className="history-answer"><strong>Sua resposta:</strong> {item.student_answer}</p>
+                    <p className="history-feedback">{item.feedback}</p>
                   </li>
                 ))}
               </ul>
