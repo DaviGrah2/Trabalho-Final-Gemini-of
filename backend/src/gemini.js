@@ -404,7 +404,8 @@ export async function generateStudyPath(diagnosisText) {
 export async function generateAssessment(topic) {
   const staticQuestions = buildStaticQuestions(topic.order_index);
   if (staticQuestions) {
-    return staticQuestions;
+    // ensure we return a full set of 30 questions by filling with generated base
+    return fillQuestions(staticQuestions, topic);
   }
 
   const fallbackQuestions = Array.from({ length: 10 }, (_, index) => ({

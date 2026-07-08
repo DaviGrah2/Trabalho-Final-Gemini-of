@@ -15,6 +15,8 @@ export default function Topico() {
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pageSize, setPageSize] = useState(0); // 0 = show all
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!student) return;
@@ -92,18 +94,78 @@ export default function Topico() {
             <p>{topicData.assessments?.length ?? 0} perguntas encontradas</p>
             {topicData.assessments?.length ? (
               <form onSubmit={handleSubmit} className="formulario">
-                {topicData.assessments.map((assessment, index) => (
-                  <label key={assessment.id}>
-                    <span className="pergunta-texto">
-                      {index + 1}. {assessment.question}
-                    </span>
-                    <textarea
-                      name={`resposta-${assessment.id}`}
-                      value={answerMap[assessment.id] || ''}
-                      onChange={(e) => handleAnswerChange(assessment.id, e.target.value)}
-                    />
-                  </label>
-                ))}
+                {/* Pagination controls */}
+                <div className="paginacao">
+                  <button
+                    type="button"
+                    className="botao secundario"
+                    onClick={() => {
+                      setPageSize(10);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Mostrar 10 por página
+                  </button>
+                  <button
+                    type="button"
+                    className="botao secundario"
+                    onClick={() => {
+                      setPageSize(0);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Mostrar todos
+                  </button>
+                </div>
+
+                {(() => {
+                  const assessments = topicData.assessments || [];
+                  const total = assessments.length;
+                  const size = pageSize > 0 ? pageSize : total;
+                  const totalPages = Math.max(1, Math.ceil(total / size));
+                  const page = Math.min(Math.max(1, currentPage), totalPages);
+                  const start = (page - 1) * size;
+                  const visible = assessments.slice(start, start + size);
+
+                  return (
+                    <>
+                      {visible.map((assessment, index) => (
+                        <label key={assessment.id}>
+                          <span className="pergunta-texto">
+                            {start + index + 1}. {assessment.question}
+                          </span>
+                          <textarea
+                            name={`resposta-${assessment.id}`}
+                            value={answerMap[assessment.id] || ''}
+                            onChange={(e) => handleAnswerChange(assessment.id, e.target.value)}
+                          />
+                        </label>
+                      ))}
+
+                      {pageSize > 0 && totalPages > 1 && (
+                        <div className="paginacao">
+                          <div className="pagina-info">Página {page} de {totalPages}</div>
+                          <button
+                            type="button"
+                            className="botao"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={page <= 1}
+                          >
+                            Anterior
+                          </button>
+                          <button
+                            type="button"
+                            className="botao"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={page >= totalPages}
+                          >
+                            Próxima
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 <div className="acoes-formulario">
                   <Botao
                     type="submit"
