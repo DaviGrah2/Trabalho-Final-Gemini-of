@@ -133,24 +133,9 @@ export default function Painel() {
                   Nome
                   <input type="text" value={editingName} onChange={(e) => setEditingName(e.target.value)} />
                 </label>
-                <label>
-                  Foto
-                  <input type="file" accept="image/*" onChange={handleAvatarFile} />
-                </label>
                 <div className="profile-actions">
                   <button className="botao" type="button" onClick={handleSaveProfile} disabled={profileSaving}>
                     {profileSaving ? 'Salvando...' : 'Salvar perfil'}
-                  </button>
-                  <button className="botao" type="button" onClick={handleSaveGlobalProgress} disabled={profileSaving}>
-                    {profileSaving ? '...' : 'Salvar progresso global'}
-                  </button>
-                  <button className="botao secundario" type="button" onClick={() => {
-                    if (!student) return; localStorage.removeItem(`painel_${student.id}`); alert('Progresso local removido.');
-                  }}>
-                    Limpar progresso local
-                  </button>
-                  <button className="botao secundario" type="button" onClick={() => restoreLocalProgress()}>
-                    Restaurar progresso local
                   </button>
                 </div>
                 <div className="small-muted">Suas informações são salvas localmente e no servidor.</div>
